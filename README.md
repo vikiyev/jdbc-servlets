@@ -346,3 +346,58 @@ The servlet context can be retrieved using **getServletContext()**.
 					context.getInitParameter("dbUser"), context.getInitParameter("dbPassword"));
     }
 ```
+
+## Prepared Statement
+
+PreparedStatement is a child interface of Statement and is a pre-compiled version of a SQL statement, represented in an object-oriented fashion. The benefit is that the compilation of the sql happens only once, and is typically more performant than regular Statements. **?** are used to mark placeholders in the Prepared Statement.
+
+For the following examples, the SQL schema is:
+
+```sql
+use mydb;
+create table product (id int,name varchar(20),description varchar(20),price int);
+```
+
+We can prepare a statement using the **Connection.prepareStatement()** method. Parameters can be bound using the corresponding setter methods.
+
+```java
+public class ProductServlet extends HttpServlet {
+	Connection conn;
+	PreparedStatement stmt;
+
+	public void init() {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			conn = DriverManager.getConnection("jdbc:mysql://localhost/mydb", "root", "1234");
+
+			stmt = conn.prepareStatement("insert into product values(?,?,?,?)");
+
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// get parameters
+		int id = Integer.parseInt(request.getParameter("id"));
+		String name = request.getParameter("name");
+		String desc = request.getParameter("desc");
+		int price = Integer.parseInt(request.getParameter("price"));
+
+		// bind parameters
+		try {
+			stmt.setInt(1, id);
+			stmt.setString(2, name);
+			stmt.setString(3, desc);
+			stmt.setInt(4, price);
+
+			stmt.executeUpdate();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+```
