@@ -71,3 +71,97 @@ The servlet can also be registered in web.xml, instead of using annotations:
 ```
 
 Running the servlet on eclipse can be done using Run As -> Run On Server -> Tomcat. The application will be available in `localhost:8080/ServletBasics/hello`.
+
+## JDBC
+
+The JDBC architecture is made up of:
+
+1. JDBC Client
+2. JDBC API
+3. JDBC Driver - interfaces between client and an underlying database
+4. Driver Manager - helper class that finds a driver and establishes connection to the database
+
+Dynamic Java applications perform CRUD operations through DML and DQL in the following steps:
+
+1. Establish connection
+2. Create the statemeent object
+3. Submit the SQL query to DBMS
+4. Close the statemenet
+5. Close the connection
+
+When creating a JDBC project, we need to conifigure the driver jar. We need to download mysql-connector-j and install it to the local machine using MySQL installer. After installation, the jar should be available under program files, which we can copy to the working directory under `lib`. We then add the jar to the classpath by configuring it in the Java Build Path in eclipse.
+
+### Connecting to the Database
+
+The database schema for the following examples is:
+
+```sql
+use mydb;
+create table account(accno int,lastname varchar(25),firstname varchar(25),bal int);
+```
+
+```java
+public class AccountDAO {
+	public static void main(String[] args) {
+		try {
+			Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "1234");
+			System.out.println(connection);
+
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+}
+```
+
+### Creating a Statement
+
+The Statement instance will be used to execute the sql statements.
+
+```java
+			Statement statement = connection.createStatement();
+
+			int result = statement.executeUpdate("insert into account values(1, 'doge', 'doge', 1000)");
+			System.out.println(result + " rows got inserted");
+
+			int result2 = statement.executeUpdate("update account set bal=2000 where accno=1");
+			System.out.println(result2 + " rows got updated");
+
+			int result3 = statement.executeUpdate("delete from account where accno=1");
+			System.out.println(result3 + " rows got deleted");
+```
+
+### Reading Data
+
+Using a Select statement, we can read data from the database. We can follow the following steps:
+
+1. Establish the Connection
+2. Create Statement object
+3. Submit the select statement
+4. Check if records exists, if none, close the ResultSet, Statement, Connection
+5. If record exists, process the records, then check for more records
+6. Close the ResultSet, Statement, Connection
+
+A **ResultSet** interface in the JDBC api is used to handle the data that comes back from a select query. It is an object-oriented representation of table records. It has three areas: Zero Record Area, Record Area, No Record Area wherein a Cursor points at. The cursor can be moved using the **next()** method.
+
+```java
+			// read from database
+			ResultSet rs = statement.executeQuery("select * from account");
+			while (rs.next()) {
+				// print the first name last name, balance using the column index
+				System.out.println(rs.getString(2));
+				System.out.println(rs.getString(3));
+				System.out.println(rs.getInt(4));
+			}
+```
+
+### Cleaning up JDBC Resources
+
+Starting java 7, we can clean up the resources through the try resource block, wherein we do not need to explicitly invoke the **close()** method. The JRE will automatically close the **close()** method through the AutoCloseable interface.
+
+```java
+try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "1234");
+				Statement statement = connection.createStatement();
+				ResultSet rs = statement.executeQuery("select * from account");)
+```
