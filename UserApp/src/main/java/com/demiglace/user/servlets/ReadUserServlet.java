@@ -1,5 +1,7 @@
 package com.demiglace.user.servlets;
 
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -18,11 +20,15 @@ public class ReadUserServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private Connection connection;
 	
-	public void init() {
+	public void init(ServletConfig config) {
 		try {
+			// get the servlet context
+			ServletContext context = config.getServletContext();
+			
 			// load driver for tomcat
 			Class.forName("com.mysql.jdbc.Driver");
-			connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "1234");
+			connection = DriverManager.getConnection(context.getInitParameter("dbUrl"),
+					context.getInitParameter("dbUser"), context.getInitParameter("dbPassword"));
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {

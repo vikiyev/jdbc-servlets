@@ -206,7 +206,7 @@ addUser.html:
 </form>
 ```
 
-### Create the Servlet
+### Creating the Servlet
 
 A Servlet can be created in Eclipse through the New->Servlet option. We implement the **init()** wherein we connect to the database. **doPost()** is called for every servlet request from the web browser.
 
@@ -260,4 +260,89 @@ public class CreateUserServlet extends HttpServlet {
 		}
 	}
 }
+```
+
+## Init Params
+
+Init Params are name-value pairs that are supplied by the servlet container to a servlet during its initialization phase through the web.xml file.
+
+```xml
+	<servlet>
+		<servlet-name>ReadUsersServlet</servlet-name>
+		<servlet-class>com.demiglace.users.servlets.ReadUsersServlet</servlet-class>
+		<init-param>
+			<param-name>dbUrl</param-name>
+			<param-value>jdbc:mysql://localhost:3306/mydb</param-value>
+		</init-param>
+		<init-param>
+			<param-name>dbUser</param-name>
+			<param-value>root</param-value>
+		</init-param>
+		<init-param>
+			<param-name>dbPassword</param-name>
+			<param-value>1234</param-value>
+		</init-param>
+	</servlet>
+```
+
+Init Params can also be configured using the **WebServlet** annotation. We can then overload the **init()** method with the ServletConfig.
+
+```java
+@WebServlet(urlPatterns = "/addServlet", initParams = {
+		@WebInitParam(name = "dbUrl", value = "jdbc:mysql://localhost:3306/mydb"),
+		@WebInitParam(name = "dbUser", value = "root"), @WebInitParam(name = "dbPassword", value = "1234") })
+public class CreateUserServlet extends HttpServlet {
+
+	public void init(ServletConfig config) {
+		try {
+			// load driver for tomcat
+			Class.forName("com.mysql.jdbc.Driver");
+			connection = DriverManager.getConnection(config.getInitParameter("dbUrl"),
+					config.getInitParameter("dbUser"), config.getInitParameter("dbPassword"));
+		}
+```
+
+## Servlet Context
+
+The servlet container creates and injects the ServletContext as soon as the application is deployed. There is only one ServletContext for the entire application and is destroyed when the application is undeployed. The data placed in the ServletContext is accessible throughout the application.
+
+Common uses for ServletContext are:
+
+1. Sharing and manipulating data
+2. Create a RequestDispatcher object for inter-servlet communication
+3. Dealing with context params
+4. store information in to the server log files using log()
+
+### Context Parameters
+
+Context Parameters are key-value pairs supplied in web.xml. The difference from Init Parameters is that Context Parameters can be accessed across the application, and not just to a specific servlet. These parameters are read by the container when the application is deployed and inject them to the ServletContext.
+
+```xml
+	<context-param>
+		<param-name>dbUrl</param-name>
+		<param-value>jdbc:mysql://localhost:3306/mydb</param-value>
+	</context-param>
+	<context-param>
+		<param-name>dbUser</param-name>
+		<param-value>root</param-value>
+	</context-param>
+	<context-param>
+		<param-name>dbPassword</param-name>
+		<param-value>1234</param-value>
+	</context-param>
+```
+
+The servlet context can be retrieved using **getServletContext()**.
+
+```java
+	public void init(ServletConfig config) {
+		try {
+			// get the servlet context
+			ServletContext context = config.getServletContext();
+
+			// load driver for tomcat
+			Class.forName("com.mysql.jdbc.Driver");
+			connection = DriverManager.getConnection(context.getInitParameter("dbUrl"),
+					context.getInitParameter("dbUser"), context.getInitParameter("dbPassword"));
+    }
 ```
