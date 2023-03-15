@@ -165,3 +165,99 @@ try (Connection connection = DriverManager.getConnection("jdbc:mysql://localhost
 				Statement statement = connection.createStatement();
 				ResultSet rs = statement.executeQuery("select * from account");)
 ```
+
+## Dynamic Web App
+
+For a dynamic web app, we can add the connector jar into `/webapp/WEB-INF/lib`. This jar will be automatically added to the build path of the application. Once deployed to a web server, it will also be picked up by the server.
+
+The database schema for the following example will be:
+
+```sql
+use mydb;
+create table user (firstName varchar(20),lastName varchar(20), email varchar(20),password varchar(20));
+```
+
+addUser.html:
+
+```html
+<form method="post" action="addServlet">
+  <table>
+    <tr>
+      <td>First Name:</td>
+      <td><input name="firstName" /></td>
+    </tr>
+    <tr>
+      <td>Last Name :</td>
+      <td><input name="lastName" /></td>
+    </tr>
+    <tr>
+      <td>Email:</td>
+      <td><input name="email" /></td>
+    </tr>
+    <tr>
+      <td>Password:</td>
+      <td><input name="password" type="password" /></td>
+    </tr>
+    <tr>
+      <td />
+      <td><input type="submit" value="Add" /></td>
+    </tr>
+  </table>
+</form>
+```
+
+### Create the Servlet
+
+A Servlet can be created in Eclipse through the New->Servlet option. We implement the **init()** wherein we connect to the database. **doPost()** is called for every servlet request from the web browser.
+
+```java
+@WebServlet("/addServlet")
+public class CreateUserServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+	private Connection connection;
+
+	public void init() {
+		try {
+			// load driver for tomcat
+			Class.forName("com.mysql.jdbc.Driver");
+			connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "1234");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void destroy() {
+		try {
+			connection.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		String firstName = request.getParameter("firstName");
+		String lastName = request.getParameter("lastName");
+		String email = request.getParameter("email");
+		String password = request.getParameter("password");
+
+		try {
+			Statement statement = connection.createStatement();
+			int result = statement.executeUpdate("insert into user values('"+firstName+"','"+lastName+"','"+email+"','"+password+"')");
+
+			PrintWriter out = response.getWriter();
+
+			// send the response if record was created in db
+			if (result > 0) {
+				out.print("<h1>User Created</h1>");
+			} else {
+				out.print("<h1>Error Creating User</h1>");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+}
+```
