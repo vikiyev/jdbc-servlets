@@ -401,3 +401,168 @@ public class ProductServlet extends HttpServlet {
 
 	}
 ```
+
+## Inter-Servlet Communication
+
+Servlets and JSP's can communicate with each other through Request Dispatching. The servlet api provides the **RequestDispatcher** interface. The example login application uses **forward** upon successful login, and **include** upon a failed login attempt.
+
+```html
+<form action="loginServlet" method="post">
+  Email : <input type="text" name="userName" /><br />
+  Password: <input type="password" name="password" /><br />
+  <input type="submit" />
+</form>
+```
+
+```java
+@WebServlet("/loginServlet")
+public class LoginServlet extends HttpServlet {
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		// retrieve parameters
+		String userName = request.getParameter("userName");
+		String password = request.getParameter("password");
+
+		try {
+			// connect to database
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection con = DriverManager.getConnection("jdbc:mysql://localhost/mydb", "root", "1234");
+
+			// create and execute the statement
+			Statement statement = con.createStatement();
+			ResultSet resultSet = statement
+					.executeQuery("select * from user where email='" + userName + "' and password=+'" + password + "'");
+
+			RequestDispatcher requestDispatcher = request.getRequestDispatcher("homeServlet");
+			// if there is a valid record found, forward the request to the homeServlet
+			if (resultSet.next()) {
+				request.setAttribute("message", "Login Success");
+				requestDispatcher.forward(request, response);
+			} else {
+				requestDispatcher = request.getRequestDispatcher("login.html");
+				requestDispatcher.include(request, response);
+			}
+
+
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+}
+```
+
+We can then retrieve the _message_ attribute that was set in the LoginServlet
+
+```java
+@WebServlet("/homeServlet")
+public class HomeServlet extends HttpServlet {
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		PrintWriter out = response.getWriter();
+		response.setContentType("text/html");
+		out.print(request.getAttribute("message"));
+	}
+
+  protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		PrintWriter out = response.getWriter();
+		response.setContentType("text/html");
+		out.print(request.getAttribute("message"));
+	}
+}
+```
+
+## Pre-Initialization
+
+There are two ways a Servlet can be initialized:
+
+1. Lazy Initialization - Servlet is initialized only when the first web client request comes in. By default, all servlets are lazily initialized
+2. Pre-Initialization - The container initializes the Servlet even before a client request comes in
+
+Pre-Initialization can be enabled through the **<load-on-startup>** tags in web.xml, or by annotations. Some examples of pre-initialized services are CXF or Jersey and Spring MVC.
+
+```java
+@WebServlet(urlPatterns = "/preInitServlet", loadOnStartup = 0)
+public class PreInitServlet extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+
+	public void init() {
+		System.out.println("Inside init()");
+	}
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		response.getWriter().write("From the pre init servlet");;
+	}
+}
+```
+
+```xml
+  <servlet>
+    <servlet-name>PreInitServlet</servlet-name>
+    <servlet-class>com.demiglace.trainings.servlets.preinit.PreInitServlet</servlet-class>
+    <load-on-startup>0</load-on-startup>
+  </servlet>
+  <servlet-mapping>
+    <servlet-name>PreInitServlet</servlet-name>
+    <url-pattern>/preInitServlet</url-pattern>
+  </servlet-mapping>
+```
+
+## Servlet Listeners
+
+Servlet Listeners enable our applications to react to certain events in the web container. These events could:
+
+1. Request
+2. Session
+3. Context
+4. Async
+
+To create listeners, we implement the **HttpSessionListener** and override its methods. For request-level events, we use **HttpRequestListener**. Eclipse also supports creating listener through the new->Listener wizard. The container will call the following listener whenever it creates a request and response object.
+
+```java
+@WebListener
+public class RequestListener implements ServletRequestListener {
+    public void requestInitialized(ServletRequestEvent event)  {
+    	System.out.println("Request Created");
+    }
+
+    public void requestDestroyed(ServletRequestEvent event)  {
+    	System.out.println("Request Destroyed");
+    }
+}
+```
+
+## Servlet Filters
+
+A filter can intercept the request and response cycles of a servlet. An example of a filter is an injection attack filter. We can apply multiple filters through Filter Chaining. Filters have a similar lifecycle as a servlet: init(), doFilter(), destroy().
+
+```java
+@WebServlet("/filterDemoServlet")
+public class FilterDemoServlet extends HttpServlet {
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		PrintWriter out = response.getWriter();
+		out.print("From the Servlet");
+	}
+}
+```
+
+Creating a filter can be done using the Eclipse new->Filter wizard. We write the logic that we want to happen before the FilterChain.doFilter is called.
+
+```java
+@WebFilter("/filterDemoServlet")
+public class DemoFilters extends HttpFilter implements Filter {
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+		PrintWriter out = response.getWriter();
+		out.print("Pre Servlet");
+		chain.doFilter(request, response);
+		out.print("Post Servlet");
+	}
+}
+
+```
+
+```
+Pre Servlet
+From the Servlet
+Post Servlet
+```
