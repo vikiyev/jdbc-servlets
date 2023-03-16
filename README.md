@@ -1,5 +1,38 @@
 # JDBC Servlets and JSP - Java Web Development Fundamentals
 
+- [JDBC Servlets and JSP - Java Web Development Fundamentals](#jdbc-servlets-and-jsp---java-web-development-fundamentals)
+  - [Configuring Tomcat in Eclipse](#configuring-tomcat-in-eclipse)
+  - [Web Application Basics](#web-application-basics)
+    - [Dynamic Web Application](#dynamic-web-application)
+    - [Life Cycle Methods and Phases](#life-cycle-methods-and-phases)
+    - [Servlets](#servlets)
+  - [JDBC](#jdbc)
+    - [Connecting to the Database](#connecting-to-the-database)
+    - [Creating a Statement](#creating-a-statement)
+    - [Reading Data](#reading-data)
+    - [Cleaning up JDBC Resources](#cleaning-up-jdbc-resources)
+  - [Dynamic Web App](#dynamic-web-app)
+    - [Creating the Servlet](#creating-the-servlet)
+  - [Init Params](#init-params)
+  - [Servlet Context](#servlet-context)
+    - [Context Parameters](#context-parameters)
+  - [Prepared Statement](#prepared-statement)
+  - [Inter-Servlet Communication](#inter-servlet-communication)
+  - [Pre-Initialization](#pre-initialization)
+  - [Servlet Listeners](#servlet-listeners)
+  - [Servlet Filters](#servlet-filters)
+  - [Session Management](#session-management)
+    - [Session Tracking](#session-tracking)
+    - [Using Cookies](#using-cookies)
+  - [JSP](#jsp)
+    - [Implicit Objects](#implicit-objects)
+    - [Scripting Elements](#scripting-elements)
+    - [JSP Actions](#jsp-actions)
+  - [MVC Pattern](#mvc-pattern)
+    - [Model](#model)
+    - [View](#view)
+    - [Controller](#controller)
+
 ## Configuring Tomcat in Eclipse
 
 In Eclipse, under the **Servers** tab, click on Create new server and select Tomcat under Apache.
@@ -663,3 +696,193 @@ public class TargetServlet extends HttpServlet {
 Ending a Session can be done using an explicit logout wherein we call the **HttpSession.invalidate()** which will tell the container to destroy the session associated in the memory. When a user is inactive Session Expiry occurs wherein the container will also implicitly destroy the session. The expiry time can be overriden through **HttpSession.setMaxInactiveInterval()** or through web.xml <session-timeout>.
 
 ### Using Cookies
+
+HTTP cookies are name-value pairs that can be used to exchange data between the web server and client as part of the HTTP headers. Cookies are usually used to maintain sessions between the container and client. The cookie used for session maangement in Java EE is **jsessionid**.
+
+```java
+public class SourceServlet extends HttpServlet{
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		Cookie[] cookies = request.getCookies();
+		if (cookies != null) {
+
+			for (int i = 0; i < cookies.length; i++) {
+				System.out.println(cookies[i].getName());
+				System.out.println(cookies[i].getValue());
+			}
+		}
+
+		// adding cookies
+		response.addCookie(new Cookie("securityToken", "12345"));
+```
+
+## JSP
+
+Java Server Pages is a Java EE technology which runs on a JSP container. It can take a request from a client, process the request, make db calls, and send back a response to the client. JSP's can do everything that a servlet can do and it also separates Java from HTML as opposed to servlets.
+
+JSP's are grouped into elements:
+
+1. Scripting Elements - allows us to embed java code into a JSP page
+2. Directives - translation time instructions to the JSP container
+3. Actions- runtime instructions to the JSP container
+
+JSP Life Cycle Methods:
+
+1. jspInit()
+2. jspService()
+3. jspDestroy()
+
+JSP Life Cycle Phases:
+
+1. Translation
+2. Compilation
+3. Instantiation
+4. Initialization
+5. Servicing
+6. Destruction
+
+### Implicit Objects
+
+These are available to every JSP page.
+
+| **Object Name** | **Type**                      |
+| --------------- | ----------------------------- |
+| config          | ServletConfig                 |
+| request         | HttpServletRequest            |
+| response        | HttpServletResponse           |
+| session         | HttpSession                   |
+| application     | ServletContext                |
+| page            | java.lang.Object              |
+| pageContext     | javax.servlet.jsp.PageContext |
+| exception       | java.lang.Throwable           |
+| out             | javax.servlet.jsp.JSPWriter   |
+
+### Scripting Elements
+
+Scripting Elements allow us to directly embed Java code into JSP pages. There are three types:
+
+1. Declaration - <%! %> - used to declare fields or methods which becomes members of the generated servlet
+2. Expression - <%= %> - holds Java expressions that evaluates to a value, then sends the result to the web client
+3. Scriptlet - <% %> - can hold any amount of logic
+
+```java
+<%
+  int num1 = Integer.parseInt(request.getParameter("number1"));
+	int num2 = Integer.parseInt(request.getParameter("number2"));
+%>
+
+Sum of <%=num1 %> and <%=num2 %> is <%=num1+num2 %>
+</body>
+```
+
+### JSP Actions
+
+JSP Actions or tags are runtime instructions to the JSP containers. There are predefined tags and custom tags. Examples of predefined tags are:
+
+1. include
+2. forward
+3. param
+4. usebean
+5. setProperty
+6. getProperty
+
+```html
+<form action="displayDetails.jsp" method="post">
+  Product Id: <input type="text" name="id" /><br />
+  Product Name: <input type="text" name="name" /><br />
+  Product Description: <input type="text" name="description" /><br />
+  Product price: <input type="text" name="price" /><br />
+  <input type="submit" />
+</form>
+```
+
+Java Beans can be used to hold data. The bean will have properties with the same names as the names in the html
+
+```java
+public class Product {
+	private int id;
+	private String name;
+	private String description;
+	private float price;
+}
+```
+
+Using the \* wildcard, the setProperty tag will automatically assign the properties to the bean using reflection.
+
+```jsp
+<body>
+	<jsp:useBean id="product" class="com.demiglace.trainings.jsp.Product">
+		<jsp:setProperty name="product" property="*" />
+	</jsp:useBean>
+
+	Product Details<br/>
+	Id:<jsp:getProperty property="id" name="product"/>
+	Name:<jsp:getProperty property="name" name="product"/>
+	Description:<jsp:getProperty property="description" name="product"/>
+	Price:<jsp:getProperty property="price" name="product"/>
+</body>
+```
+
+## MVC Pattern
+
+MVC is a design pattern that splits the web layer into three parts:
+
+1. Model - represents the current state of the application and does the business logic. Represented by a java class
+2. View - displays the current model to the end user. Represented by JSP
+3. Controller - responsible for selecting the appropriate model and view. Represented by a Servlet
+
+MVC has the following advantages:
+
+1. Maintenance
+2. Parallel Development
+
+### Model
+
+```java
+public class AverageCalculator {
+	public int calculate(int num1, int num2) {
+		return (num1 + num2)/2;
+	}
+}
+```
+
+### View
+
+```html
+<body>
+  <h3>Enter two number:</h3>
+  <form action="averageController" method="post">
+    Number 1 : <input name="number1" /><br />
+    Number 2: <input name="number2" /><br />
+    <input type="submit" />
+  </form>
+</body>
+```
+
+```jsp
+<body>
+<%
+	int result = (Integer) request.getAttribute("result");
+	out.print("<b>The average is: " + result + "</b>");
+%>
+</body>
+```
+
+### Controller
+
+```java
+@WebServlet("/averageController")
+public class AverageController extends HttpServlet {
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		int num1 = Integer.parseInt(request.getParameter("number1"));
+		int num2 = Integer.parseInt(request.getParameter("number2"));
+
+		AverageCalculator model = new AverageCalculator();
+		int result = model.calculate(num1, num2);
+
+		// send result to the view
+		request.setAttribute("result", result);
+		RequestDispatcher dispatcher = request.getRequestDispatcher("result.jsp");
+		dispatcher.forward(request, response);
+	}
+}
+```
