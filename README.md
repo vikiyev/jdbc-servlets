@@ -566,3 +566,100 @@ Pre Servlet
 From the Servlet
 Post Servlet
 ```
+
+## Session Management
+
+HTTP is a stateless protocol which means that the server does not maintain a continuous connection once the server handles the request and sends back the response. The socket connection is destroyed everytime the server sends a response back. When the next request comes from the client, it has to establish a new connection. The advantages of being stateless are performance and scalability.
+
+Handling session can be done in the following steps:
+
+1. Create the Session
+2. Maintain the data using the four attribute methods on HttpSession
+3. End the Session
+
+```html
+<h1>Enter User Name:</h1>
+<form method="post" action="sourceServlet">
+  User Name: <input name="userName" />
+  <input type="submit" value="send" name="submitButton" />
+</form>
+```
+
+```java
+public class SourceServlet extends HttpServlet{
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		// retrieve the user name
+		String userName = request.getParameter("userName");
+
+		// retrieve the session
+		HttpSession session = request.getSession();
+		session.setAttribute("user", userName);
+
+		response.setContentType("text/html");
+		PrintWriter out = response.getWriter();
+
+		out.print("<a href='targetServlet'>Click here to get the User Name</a>");
+	}
+}
+```
+
+When we invoke **getSession()**, the web container will check to see if the incoming request has a sessionId. If none, the container will create a unique session for that client. The web container will then automatically include the session id on the response back to the client. The web client has to send that id back, which will be taken by the container to check if there is an associated session for that id.
+
+### Session Tracking
+
+Session Tracking is used to maintain the state despite the statelessness of HTTP.
+
+```java
+public class SourceServlet extends HttpServlet{
+	public void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		// retrieve the user name
+		String userName = request.getParameter("userName");
+
+		// retrieve the session
+		HttpSession session = request.getSession();
+		session.setAttribute("user", userName);
+
+		response.setContentType("text/html");
+		PrintWriter out = response.getWriter();
+
+		out.print("<a href='targetServlet'>Click here to get the User Name</a>");
+	}
+}
+
+public class TargetServlet extends HttpServlet {
+	public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		// retrieve the session
+		HttpSession session = request.getSession();
+		String userName = (String) session.getAttribute("user");
+
+		response.setContentType("text/html");
+		PrintWriter out = response.getWriter();
+
+		out.print("<h1>User Name is: " + userName + "</h1>");
+	}
+}
+```
+
+```xml
+	<servlet>
+		<servlet-name>sourceServlet</servlet-name>
+		<servlet-class>com.demiglace.trainings.servlets.sm.SourceServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>sourceServlet</servlet-name>
+		<url-pattern>/sourceServlet</url-pattern>
+	</servlet-mapping>
+
+	<servlet>
+		<servlet-name>targetServlet</servlet-name>
+		<servlet-class>com.demiglace.trainings.servlets.sm.TargetServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>targetServlet</servlet-name>
+		<url-pattern>/targetServlet</url-pattern>
+	</servlet-mapping>
+```
+
+Ending a Session can be done using an explicit logout wherein we call the **HttpSession.invalidate()** which will tell the container to destroy the session associated in the memory. When a user is inactive Session Expiry occurs wherein the container will also implicitly destroy the session. The expiry time can be overriden through **HttpSession.setMaxInactiveInterval()** or through web.xml <session-timeout>.
+
+### Using Cookies
