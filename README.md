@@ -38,6 +38,9 @@
   - [JSTL](#jstl)
     - [Core Tags](#core-tags)
     - [Formatting Library](#formatting-library)
+  - [Web Security](#web-security)
+    - [Form Based Authentication](#form-based-authentication)
+  - [Connection Pooling](#connection-pooling)
 
 ## Configuring Tomcat in Eclipse
 
@@ -1104,4 +1107,89 @@ A string can be parsed into a date, given a pattern using fmt:parseDate
   <c:set var="myDate" value="03-21-2023" />
 	<fmt:parseDate var="parsedDate" value="${myDate}" pattern="MM-dd-yyyy"/>
   <c:out value="${parsedDate}" />
+```
+
+## Web Security
+
+Users can be configured in tomcat-users.xml.
+
+```xml
+<role rolename="myuserrole"/>
+<user username="myuser" password="mypassword" roles="myuserrole"/>
+```
+
+We can use this role in our basic authentication. Basic authentication is configured under `WEB-INF/web.xml`. In our example, all resources would be covered by `/*`. When the application is accessed, the browser will prompt a popup for username and password.
+
+```xml
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>MyResources</web-resource-name>
+			<url-pattern>/*</url-pattern>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>myuserrole</role-name>
+		</auth-constraint>
+	</security-constraint>
+	<login-config>
+		<auth-method>BASIC</auth-method>
+		<realm-name>FILE</realm-name>
+	</login-config>
+```
+
+### Form Based Authentication
+
+In form-based authentication, we define our own form and error pages. To enable form based authentication, we provide the following to web.xml.
+
+```xml
+	<login-config>
+		<auth-method>FORM</auth-method>
+		<realm-name>FILE</realm-name>
+		<form-login-config>
+			<form-login-page>/login.jsp</form-login-page>
+			<form-error-page>/error.jsp</form-error-page>
+		</form-login-config>
+	</login-config>
+```
+
+```jsp
+<form action="j_security_check" method="post">
+	User Name: <input name="j_username" /><br/>
+	Password: <input type="password" name="j_password" /><br/>
+	<input type="submit" value="submit" />
+</form>
+```
+
+## Connection Pooling
+
+Connection Pooling allows us to request the container to create a set of JDBC connections right as it starts up. These connections can be used by servlets or any other resource, then send the connection back to the pool once done instead of closing it. There are two steps to configure connection pooling:
+
+1. Copy Driver JAR to tomcat installation's `/lib` directory
+2. Configure Resource Element in context.xml under the tomcat installation's `/conf` directory
+
+```xml
+	<Resource name="myds" auth="Container"
+		type="javax.sql.DataSource" driverClassName="com.mysql.jdbc.Driver"
+		url="jdbc:mysql://localhost:3306/mydb" username="root" password="test"/>
+```
+
+To acquire a connection from the pool, we need to connect to the naming service then look up for the DataSource. When tomcat starts, it reads the context.xml and creates the resource pool of connections using our url string, passwords, etc. The datasource is put inside the myds naming service and when the servlet is run, we access that namingservice with **InitialContext()**.
+
+```java
+public class ConnectionPoolingServlet extends HttpServlet {
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// connect to naming service and do lookup
+		try {
+			Context context = new InitialContext();
+			DataSource ds = (DataSource) context.lookup("java:comp/env/myds");
+
+			// get the connection
+			Connection connection = ds.getConnection();
+			System.out.println(connection);
+
+		} catch (NamingException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 ```
