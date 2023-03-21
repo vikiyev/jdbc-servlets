@@ -32,6 +32,9 @@
     - [Model](#model)
     - [View](#view)
     - [Controller](#controller)
+  - [Custom Tags](#custom-tags)
+    - [Tag Handler Class](#tag-handler-class)
+    - [Tag Lib Descriptor](#tag-lib-descriptor)
 
 ## Configuring Tomcat in Eclipse
 
@@ -885,4 +888,112 @@ public class AverageController extends HttpServlet {
 		dispatcher.forward(request, response);
 	}
 }
+```
+
+## Custom Tags
+
+We can define custom tags when the inbuilt tags that come with the JSP specifications are not enough. There are two steps in creating custom tags:
+
+1. Create the Tag Handler Class
+2. Create the Tag Lib Descriptor (TLD)
+
+### Tag Handler Class
+
+The tag handler extends the TagSupport class. The doStartTag() method will be invoked by the container as soon as it reaches the starting element of our tag in the JSP page. To access the implicit objects such as the request, response, etc. the **pageContext** of the parent TagSupport class is used.
+
+```java
+public class ResultHandler extends TagSupport {
+	Connection con;
+	PreparedStatement stmt;
+
+	public ResultHandler() {
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			DriverManager.getConnection("jdbc:mysql://localhost:3306/mydb", "root", "1234");
+			stmt = con.prepareStatement("select * from user where email=?");
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+  @Override
+	public int doStartTag() throws JspException {
+		// get the user id out of the request
+		ServletRequest request = pageContext.getRequest();
+		String email = request.getParameter("email");
+
+		try {
+			stmt.setString(1, email);
+			ResultSet rs = stmt.executeQuery();
+			JspWriter out = null;
+
+			if (rs.next()) {
+				out = pageContext.getOut();
+				out.print("User Details are: <br/>");
+				out.print("First Name: <br/>");
+				out.print(rs.getString(1));
+				out.print("Last Name: <br/>");
+				out.print(rs.getString(2));
+			} else {
+				out.print("Invalid email entered");
+			}
+
+		} catch (SQLException | IOException e) {
+			e.printStackTrace();
+		}
+
+
+		return Tag.SKIP_BODY;
+	}
+
+	@Override
+	public void release() {
+		try {
+			stmt.close();
+			con.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+}
+```
+
+### Tag Lib Descriptor
+
+The tag lib descriptor is an xml file with the `tld` extension located under `WEB-INF`.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<taglib>
+	<tlibversion>2.0</tlibversion>
+	<jspversion>2.0</jspversion>
+	<shortname>userinformation</shortname>
+	<info>This library displays the user information.</info>
+	<uri>http://demiglace.com</uri>
+
+	<tag>
+		<name>displayuser</name>
+		<tagclass>com.demiglace.trainings.jsp.customtags.ResultHandler</tagclass>
+		<info>Displays the User's information</info>
+	</tag>
+</taglib>
+```
+
+We can then use the custom tag in our JSP page using the **taglib** directive.
+
+```jsp
+<%@taglib prefix="demiglace" uri="http://demiglace.com" %>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="ISO-8859-1">
+<title>Display User Info</title>
+</head>
+<body>
+	<demiglace:displayuser/>
+</body>
+</html>
 ```

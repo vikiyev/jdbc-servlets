@@ -81,6 +81,7 @@ org.eclipse.emf.codegen.ui.jet.expressionForeground=152,152,255
 org.eclipse.emf.codegen.ui.jet.scriptletBackground=2,2,3
 org.eclipse.emf.codegen.ui.jet.scriptletForeground=234,235,240
 org.eclipse.jdt.ui.ColoredLabels.inherited=143,143,191
+org.eclipse.jdt.ui.ColoredLabels.match_highlight=65,68,88
 org.eclipse.jdt.ui.ColoredLabels.writeaccess_highlight=255,128,128
 org.eclipse.jdt.ui.Javadoc.backgroundColor=43,46,59
 org.eclipse.jdt.ui.Javadoc.foregroundColor=234,235,240
