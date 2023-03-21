@@ -35,6 +35,9 @@
   - [Custom Tags](#custom-tags)
     - [Tag Handler Class](#tag-handler-class)
     - [Tag Lib Descriptor](#tag-lib-descriptor)
+  - [JSTL](#jstl)
+    - [Core Tags](#core-tags)
+    - [Formatting Library](#formatting-library)
 
 ## Configuring Tomcat in Eclipse
 
@@ -928,7 +931,7 @@ public class ResultHandler extends TagSupport {
 		try {
 			stmt.setString(1, email);
 			ResultSet rs = stmt.executeQuery();
-			JspWriter out = null;
+			JspWriter out = pageContext.getOut();
 
 			if (rs.next()) {
 				out = pageContext.getOut();
@@ -996,4 +999,109 @@ We can then use the custom tag in our JSP page using the **taglib** directive.
 	<demiglace:displayuser/>
 </body>
 </html>
+```
+
+## JSTL
+
+JSP Standard Tag Library is a set of predefined tags from Oracle. Using the core tags, we can do conditional checks, perform loops, etc. without writing Java inside JSP pages. To use JSTL tags, we need to include the standard and JSTL jar files into `WEB-INF/lib`. We then use the taglib directive to include the jars, then import the library.
+
+### Core Tags
+
+The core tags are located in the `c` prefix.
+
+```jsp
+<%@ taglib prefix="c" uri="http://java.sun.com/jstl/core_rt" %>
+
+<c:out value="${10 + 9}"/>
+```
+
+C:set and c:remove can be used to delete values from a particular scope
+
+```jsp
+	<c:set var="testScore" value="${80}" scope="session"/>
+	<c:out value="${testScore}"/>
+	<c:remove var="testScore"/>
+```
+
+c:if can be used for conditional logic and display
+
+```jsp
+	<c:if test="${testScore >=80 }">
+		<p>Your score is awesome</p>
+		<c:out value="${testScore }"/>
+	</c:if>
+```
+
+c:choose works like a switch statement
+
+```jsp
+	<c:choose>
+		<c:when test="${testScore>=80}">
+			A Grade
+		</c:when>
+		<c:when test="${testScore>=60 && testScore <=80}">
+			B Grade
+		</c:when>
+		<c:otherwise>
+			C Grade
+		</c:otherwise>
+	</c:choose>
+```
+
+To loop, use c:forEach. It can also be used to iterate over a collection.
+
+```jsp
+<%@page import="java.util.ArrayList"%>
+<%@page import="java.util.List"%>
+
+	<c:forEach var="i" begin="1" end="3">
+		<c:out value="${i}"/>
+	</c:forEach>
+
+	<%
+	List<String> studentNames = new ArrayList<>();
+	studentNames.add("Doge");
+	studentNames.add("Cate");
+	studentNames.add("Fishe");
+
+	request.setAttribute("studentNames", studentNames);
+	%>
+
+	<c:forEach var="studentName" items="${studentNames}">
+		<c:out value="${studentName}"/>
+	</c:forEach>
+```
+
+### Formatting Library
+
+Formatting tags are imported via the fmt prefix
+
+```jsp
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+```
+
+We can parse a value into a number using fmt:parseNumber
+
+```jsp
+  <c:set var="accountBalance" value="123.456"/>
+	<fmt:parseNumber var="i" type="number" value="${accountBalance}"/>
+	<p>Balance is: <c:out value="${i}" /></p>
+```
+
+A given number can be formatted into different formats using fmt:formatNumber
+
+```jsp
+	<c:set var="accountBalance" value="7777.4567"/>
+	<fmt:formatNumber value="${accountBalance}" type="currency"/>
+  <fmt:formatNumber value="${accountBalance}" type="number" maxFractionDigits="3" maxIntegerDigits="2"/>
+  <fmt:formatNumber value="${accountBalance}" type="number" pattern="####.##$"/>
+  <fmt:formatNumber value="${accountBalance}" type="percent"/>
+```
+
+A string can be parsed into a date, given a pattern using fmt:parseDate
+
+```jsp
+  <c:set var="myDate" value="03-21-2023" />
+	<fmt:parseDate var="parsedDate" value="${myDate}" pattern="MM-dd-yyyy"/>
+  <c:out value="${parsedDate}" />
 ```
